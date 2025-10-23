@@ -5,7 +5,8 @@
   "description": "Reveal Pinterest stats for each pin! Sort pins by likes, comments or creation date with this marketing analyzer tool",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
     "https://*.pinterest.com/*",
@@ -33,7 +34,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["stats.html"],
+      "resources": ["stats.html", "pinterest-interceptor.js"],
       "matches": ["https://*.pinterest.com/*"]
     }
   ]

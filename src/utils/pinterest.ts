@@ -4,8 +4,10 @@ export class PinterestExtractor {
   /**
    * Extract pin data from Pinterest's internal data structures
    * Pinterest stores data in window.__PWS_DATA__ or within React component props
+   * @param element - The DOM element containing the pin
+   * @param interceptedData - Optional data intercepted from Pinterest's API
    */
-  static extractPinFromElement(element: HTMLElement): PinStats | null {
+  static extractPinFromElement(element: HTMLElement, interceptedData?: any): PinStats | null {
     try {
       // Try to find the pin link
       const linkElement = element.querySelector('a[href*="/pin/"]') as HTMLAnchorElement;
@@ -15,26 +17,67 @@ export class PinterestExtractor {
       const pinId = this.extractPinId(pinUrl);
       if (!pinId) return null;
 
-      // Try to extract from data attributes or React props
-      const pinData = this.extractPinDataFromDOM(element);
-
       // Get image URL
       const imgElement = element.querySelector('img') as HTMLImageElement;
       const imageUrl = imgElement?.src || imgElement?.dataset?.src || '';
 
-      // Get title
-      const titleElement = element.querySelector('[data-test-id="pin-title"], h3, h2');
-      const title = titleElement?.textContent?.trim() || 'Untitled Pin';
+      // Get title - try multiple selectors
+      let title = 'Untitled Pin';
+      const titleSelectors = [
+        '[data-test-id="pin-title"]',
+        '[data-test-id="pinTitle"]',
+        'h1',
+        'h2',
+        'h3',
+        '[title]',
+        'img[alt]',
+      ];
+
+      for (const selector of titleSelectors) {
+        const titleElement = element.querySelector(selector);
+        if (titleElement) {
+          const text = (titleElement as HTMLElement).getAttribute('title') ||
+                      (titleElement as HTMLImageElement).getAttribute('alt') ||
+                      titleElement.textContent?.trim();
+          if (text && text.length > 0 && text !== 'Pinterest') {
+            title = text;
+            break;
+          }
+        }
+      }
+
+      // Priority: intercepted data > React props > DOM extraction
+      let stats = { saves: 0, likes: 0, comments: 0, createdAt: new Date().toISOString() };
+
+      if (interceptedData) {
+        // Use intercepted data if available (highest priority)
+        stats = {
+          saves: interceptedData.saves || 0,
+          likes: interceptedData.likes || 0,
+          comments: interceptedData.comments || 0,
+          createdAt: interceptedData.createdAt || stats.createdAt,
+        };
+        if (interceptedData.title && interceptedData.title.length > 0) {
+          title = interceptedData.title;
+        }
+        console.log(`Using intercepted data for pin ${pinId}:`, stats);
+      } else {
+        // Try to extract from React props or DOM
+        const pinData = this.extractPinDataFromDOM(element);
+        if (pinData) {
+          stats = pinData;
+        }
+      }
 
       return {
         id: pinId,
         url: pinUrl,
         imageUrl,
         title,
-        saves: pinData?.saves || 0,
-        likes: pinData?.likes || 0,
-        comments: pinData?.comments || 0,
-        createdAt: pinData?.createdAt || new Date().toISOString(),
+        saves: stats.saves,
+        likes: stats.likes,
+        comments: stats.comments,
+        createdAt: stats.createdAt,
         timestamp: Date.now(),
       };
     } catch (error) {
@@ -110,28 +153,77 @@ export class PinterestExtractor {
   }
 
   private static findReactProps(element: HTMLElement): any {
-    // Try to find React fiber
-    const fiberKey = Object.keys(element).find(key =>
-      key.startsWith('__reactFiber') || key.startsWith('__reactInternalInstance')
-    );
+    // Try to find React fiber - traverse up to 5 levels
+    let currentElement: HTMLElement | null = element;
+    let depth = 0;
 
-    if (fiberKey) {
-      const fiber = (element as any)[fiberKey];
-      if (fiber?.memoizedProps) {
-        const props = fiber.memoizedProps;
+    while (currentElement && depth < 5) {
+      const fiberKey = Object.keys(currentElement).find(key =>
+        key.startsWith('__reactFiber') ||
+        key.startsWith('__reactInternalInstance') ||
+        key.startsWith('__reactProps')
+      );
 
-        // Look for pin data in props
-        if (props.pin || props.data || props.pinData) {
-          const pinData = props.pin || props.data || props.pinData;
-          return {
-            saves: pinData.aggregated_pin_data?.aggregated_stats?.saves ||
-                   pinData.repin_count || 0,
-            likes: pinData.aggregated_pin_data?.aggregated_stats?.likes ||
-                   pinData.like_count || 0,
-            comments: pinData.comment_count || 0,
-            createdAt: pinData.created_at || new Date().toISOString(),
-          };
+      if (fiberKey) {
+        const fiber = (currentElement as any)[fiberKey];
+
+        // Try to extract from memoizedProps
+        if (fiber?.memoizedProps) {
+          const result = this.extractFromProps(fiber.memoizedProps);
+          if (result) return result;
         }
+
+        // Try to extract from return (parent fiber)
+        if (fiber?.return?.memoizedProps) {
+          const result = this.extractFromProps(fiber.return.memoizedProps);
+          if (result) return result;
+        }
+
+        // Try to extract from child
+        if (fiber?.child?.memoizedProps) {
+          const result = this.extractFromProps(fiber.child.memoizedProps);
+          if (result) return result;
+        }
+
+        // Try stateNode
+        if (fiber?.stateNode?.props) {
+          const result = this.extractFromProps(fiber.stateNode.props);
+          if (result) return result;
+        }
+      }
+
+      currentElement = currentElement.parentElement;
+      depth++;
+    }
+
+    return null;
+  }
+
+  private static extractFromProps(props: any): any {
+    if (!props) return null;
+
+    // Look for pin data in various prop names
+    const possiblePinData = props.pin || props.data || props.pinData || props.pinObject || props.item;
+
+    if (possiblePinData && typeof possiblePinData === 'object') {
+      const pinData = possiblePinData;
+
+      // Check if this looks like valid pin data
+      if (pinData.id || pinData.repin_count !== undefined || pinData.comment_count !== undefined) {
+        return {
+          saves: pinData.aggregated_pin_data?.aggregated_stats?.saves ||
+                 pinData.repin_count ||
+                 pinData.save_count ||
+                 pinData.saves ||
+                 0,
+          likes: pinData.aggregated_pin_data?.aggregated_stats?.likes ||
+                 pinData.reaction_counts?.['1'] ||
+                 pinData.like_count ||
+                 pinData.likes ||
+                 0,
+          comments: pinData.comment_count || pinData.comments || 0,
+          createdAt: pinData.created_at || pinData.createdAt || new Date().toISOString(),
+        };
       }
     }
 

@@ -6,6 +6,7 @@ module.exports = {
     content: './src/content/index.tsx',
     background: './src/background/index.ts',
     stats: './src/stats/index.tsx',
+    'pinterest-interceptor': './src/injected/pinterest-interceptor.ts',
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
