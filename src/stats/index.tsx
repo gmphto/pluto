@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { StatsTable } from './StatsTable';
+import { StatsPage } from './statsPage';
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
-root.render(<StatsTable />);
+root.render(<StatsPage />);
