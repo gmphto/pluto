@@ -69,7 +69,9 @@ class PinterestStatsInjector {
     // Find the pin element with this ID
     const pinLink = document.querySelector(`a[href*="/pin/${pinId}"]`);
     if (pinLink) {
-      const pinElement = pinLink.closest('[data-test-id="pin"], [data-test-id="pinWrapper"], [data-grid-item="true"]') as HTMLElement;
+      const pinElement = pinLink.closest(
+        '[data-test-id="pin"], [data-test-id="pinWrapper"], [data-grid-item="true"]'
+      ) as HTMLElement;
       if (pinElement) {
         // Check if we've already processed this pin
         if (this.processedPins.has(pinId)) {
@@ -123,10 +125,7 @@ class PinterestStatsInjector {
   private updateFloatingButton() {
     if (this.floatingButtonRoot) {
       this.floatingButtonRoot.render(
-        <FloatingButton
-          onClick={() => this.openStatsPage()}
-          pinCount={this.pinCount}
-        />
+        <FloatingButton onClick={() => this.openStatsPage()} pinCount={this.pinCount} />
       );
     }
   }
@@ -162,7 +161,7 @@ class PinterestStatsInjector {
 
     for (const selector of pinSelectors) {
       const elements = document.querySelectorAll(selector);
-      elements.forEach(el => {
+      elements.forEach((el) => {
         if (!pinElements.includes(el as HTMLElement)) {
           pinElements.push(el as HTMLElement);
         }
@@ -172,7 +171,7 @@ class PinterestStatsInjector {
     if (pinElements.length === 0) {
       // Fallback: try to find elements with pin links
       const linkElements = document.querySelectorAll('a[href*="/pin/"]');
-      linkElements.forEach(link => {
+      linkElements.forEach((link) => {
         const pinElement = link.closest('div[style*="position"]') as HTMLElement;
         if (pinElement && !pinElements.includes(pinElement)) {
           pinElements.push(pinElement);
@@ -236,7 +235,7 @@ class PinterestStatsInjector {
 
   private extractPinId(url: string): string | null {
     const match = url.match(/\/pin\/(\d+)/);
-    return match ? match[1] : null;
+    return match && match[1] ? match[1] : null;
   }
 
   private addStatsOverlay(element: HTMLElement, stats: PinStats) {
@@ -270,7 +269,7 @@ class PinterestStatsInjector {
     }
 
     // Clean up overlays
-    document.querySelectorAll('.pinterest-stats-overlay').forEach(el => el.remove());
+    document.querySelectorAll('.pinterest-stats-overlay').forEach((el) => el.remove());
 
     // Clean up floating button
     if (this.floatingButtonRoot) {

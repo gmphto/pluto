@@ -43,30 +43,29 @@ export const StatsTable: React.FC = () => {
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(pin =>
-        pin.title.toLowerCase().includes(query) ||
-        pin.url.toLowerCase().includes(query)
+      result = result.filter(
+        (pin) => pin.title.toLowerCase().includes(query) || pin.url.toLowerCase().includes(query)
       );
     }
 
     // Apply numeric filters
     if (filters.minSaves !== undefined) {
-      result = result.filter(pin => pin.saves >= filters.minSaves!);
+      result = result.filter((pin) => pin.saves >= filters.minSaves!);
     }
     if (filters.maxSaves !== undefined) {
-      result = result.filter(pin => pin.saves <= filters.maxSaves!);
+      result = result.filter((pin) => pin.saves <= filters.maxSaves!);
     }
     if (filters.minLikes !== undefined) {
-      result = result.filter(pin => pin.likes >= filters.minLikes!);
+      result = result.filter((pin) => pin.likes >= filters.minLikes!);
     }
     if (filters.maxLikes !== undefined) {
-      result = result.filter(pin => pin.likes <= filters.maxLikes!);
+      result = result.filter((pin) => pin.likes <= filters.maxLikes!);
     }
     if (filters.minComments !== undefined) {
-      result = result.filter(pin => pin.comments >= filters.minComments!);
+      result = result.filter((pin) => pin.comments >= filters.minComments!);
     }
     if (filters.maxComments !== undefined) {
-      result = result.filter(pin => pin.comments <= filters.maxComments!);
+      result = result.filter((pin) => pin.comments <= filters.maxComments!);
     }
 
     // Sort
@@ -103,7 +102,7 @@ export const StatsTable: React.FC = () => {
         day: 'numeric',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       });
     } catch {
       return 'N/A';
@@ -152,7 +151,12 @@ export const StatsTable: React.FC = () => {
                 type="number"
                 placeholder="0"
                 value={filters.minSaves || ''}
-                onChange={(e) => setFilters({ ...filters, minSaves: e.target.value ? parseInt(e.target.value) : undefined })}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    minSaves: e.target.value ? parseInt(e.target.value) : undefined,
+                  })
+                }
                 style={styles.filterInput}
               />
             </div>
@@ -163,7 +167,12 @@ export const StatsTable: React.FC = () => {
                 type="number"
                 placeholder="∞"
                 value={filters.maxSaves || ''}
-                onChange={(e) => setFilters({ ...filters, maxSaves: e.target.value ? parseInt(e.target.value) : undefined })}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    maxSaves: e.target.value ? parseInt(e.target.value) : undefined,
+                  })
+                }
                 style={styles.filterInput}
               />
             </div>
@@ -174,7 +183,12 @@ export const StatsTable: React.FC = () => {
                 type="number"
                 placeholder="0"
                 value={filters.minLikes || ''}
-                onChange={(e) => setFilters({ ...filters, minLikes: e.target.value ? parseInt(e.target.value) : undefined })}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    minLikes: e.target.value ? parseInt(e.target.value) : undefined,
+                  })
+                }
                 style={styles.filterInput}
               />
             </div>
@@ -185,7 +199,12 @@ export const StatsTable: React.FC = () => {
                 type="number"
                 placeholder="∞"
                 value={filters.maxLikes || ''}
-                onChange={(e) => setFilters({ ...filters, maxLikes: e.target.value ? parseInt(e.target.value) : undefined })}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    maxLikes: e.target.value ? parseInt(e.target.value) : undefined,
+                  })
+                }
                 style={styles.filterInput}
               />
             </div>
@@ -196,7 +215,12 @@ export const StatsTable: React.FC = () => {
                 type="number"
                 placeholder="0"
                 value={filters.minComments || ''}
-                onChange={(e) => setFilters({ ...filters, minComments: e.target.value ? parseInt(e.target.value) : undefined })}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    minComments: e.target.value ? parseInt(e.target.value) : undefined,
+                  })
+                }
                 style={styles.filterInput}
               />
             </div>
@@ -207,7 +231,12 @@ export const StatsTable: React.FC = () => {
                 type="number"
                 placeholder="∞"
                 value={filters.maxComments || ''}
-                onChange={(e) => setFilters({ ...filters, maxComments: e.target.value ? parseInt(e.target.value) : undefined })}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    maxComments: e.target.value ? parseInt(e.target.value) : undefined,
+                  })
+                }
                 style={styles.filterInput}
               />
             </div>
@@ -229,7 +258,8 @@ export const StatsTable: React.FC = () => {
             <>
               <p style={styles.emptyText}>No pins saved yet.</p>
               <p style={styles.emptySubtext}>
-                Visit Pinterest and browse some pins. The extension will automatically collect stats!
+                Visit Pinterest and browse some pins. The extension will automatically collect
+                stats!
               </p>
             </>
           ) : (
@@ -275,11 +305,7 @@ export const StatsTable: React.FC = () => {
                 <tr key={pin.id} style={styles.row}>
                   <td style={styles.td}>
                     {pin.imageUrl && (
-                      <img
-                        src={pin.imageUrl}
-                        alt={pin.title}
-                        style={styles.thumbnail}
-                      />
+                      <img src={pin.imageUrl} alt={pin.title} style={styles.thumbnail} />
                     )}
                   </td>
                   <td style={styles.td}>
@@ -290,12 +316,7 @@ export const StatsTable: React.FC = () => {
                   <td style={styles.td}>{formatNumber(pin.comments)}</td>
                   <td style={styles.td}>{formatDate(pin.createdAt)}</td>
                   <td style={styles.td}>
-                    <a
-                      href={pin.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={styles.link}
-                    >
+                    <a href={pin.url} target="_blank" rel="noopener noreferrer" style={styles.link}>
                       View Pin
                     </a>
                   </td>

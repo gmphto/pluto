@@ -36,9 +36,10 @@ export class PinterestExtractor {
       for (const selector of titleSelectors) {
         const titleElement = element.querySelector(selector);
         if (titleElement) {
-          const text = (titleElement as HTMLElement).getAttribute('title') ||
-                      (titleElement as HTMLImageElement).getAttribute('alt') ||
-                      titleElement.textContent?.trim();
+          const text =
+            (titleElement as HTMLElement).getAttribute('title') ||
+            (titleElement as HTMLImageElement).getAttribute('alt') ||
+            titleElement.textContent?.trim();
           if (text && text.length > 0 && text !== 'Pinterest') {
             title = text;
             break;
@@ -88,7 +89,7 @@ export class PinterestExtractor {
 
   private static extractPinId(url: string): string | null {
     const match = url.match(/\/pin\/(\d+)/);
-    return match ? match[1] : null;
+    return match && match[1] ? match[1] : null;
   }
 
   private static extractPinDataFromDOM(element: HTMLElement): any {
@@ -97,9 +98,15 @@ export class PinterestExtractor {
     // Method 1: Look for data attributes
     const statsElement = element.querySelector('[data-test-id="pin-stats"]');
     if (statsElement) {
-      const saves = this.parseNumber(statsElement.querySelector('[data-test-id="save-count"]')?.textContent);
-      const likes = this.parseNumber(statsElement.querySelector('[data-test-id="like-count"]')?.textContent);
-      const comments = this.parseNumber(statsElement.querySelector('[data-test-id="comment-count"]')?.textContent);
+      const saves = this.parseNumber(
+        statsElement.querySelector('[data-test-id="save-count"]')?.textContent
+      );
+      const likes = this.parseNumber(
+        statsElement.querySelector('[data-test-id="like-count"]')?.textContent
+      );
+      const comments = this.parseNumber(
+        statsElement.querySelector('[data-test-id="comment-count"]')?.textContent
+      );
 
       if (saves || likes || comments) {
         return { saves, likes, comments };
@@ -158,10 +165,11 @@ export class PinterestExtractor {
     let depth = 0;
 
     while (currentElement && depth < 5) {
-      const fiberKey = Object.keys(currentElement).find(key =>
-        key.startsWith('__reactFiber') ||
-        key.startsWith('__reactInternalInstance') ||
-        key.startsWith('__reactProps')
+      const fiberKey = Object.keys(currentElement).find(
+        (key) =>
+          key.startsWith('__reactFiber') ||
+          key.startsWith('__reactInternalInstance') ||
+          key.startsWith('__reactProps')
       );
 
       if (fiberKey) {
@@ -203,7 +211,8 @@ export class PinterestExtractor {
     if (!props) return null;
 
     // Look for pin data in various prop names
-    const possiblePinData = props.pin || props.data || props.pinData || props.pinObject || props.item;
+    const possiblePinData =
+      props.pin || props.data || props.pinData || props.pinObject || props.item;
 
     if (possiblePinData && typeof possiblePinData === 'object') {
       const pinData = possiblePinData;
@@ -211,16 +220,18 @@ export class PinterestExtractor {
       // Check if this looks like valid pin data
       if (pinData.id || pinData.repin_count !== undefined || pinData.comment_count !== undefined) {
         return {
-          saves: pinData.aggregated_pin_data?.aggregated_stats?.saves ||
-                 pinData.repin_count ||
-                 pinData.save_count ||
-                 pinData.saves ||
-                 0,
-          likes: pinData.aggregated_pin_data?.aggregated_stats?.likes ||
-                 pinData.reaction_counts?.['1'] ||
-                 pinData.like_count ||
-                 pinData.likes ||
-                 0,
+          saves:
+            pinData.aggregated_pin_data?.aggregated_stats?.saves ||
+            pinData.repin_count ||
+            pinData.save_count ||
+            pinData.saves ||
+            0,
+          likes:
+            pinData.aggregated_pin_data?.aggregated_stats?.likes ||
+            pinData.reaction_counts?.['1'] ||
+            pinData.like_count ||
+            pinData.likes ||
+            0,
           comments: pinData.comment_count || pinData.comments || 0,
           createdAt: pinData.created_at || pinData.createdAt || new Date().toISOString(),
         };
@@ -239,7 +250,7 @@ export class PinterestExtractor {
       const response = await fetch('https://www.pinterest.com/resource/PinResource/get/', {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
         },
         credentials: 'include',
