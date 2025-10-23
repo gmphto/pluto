@@ -51,7 +51,13 @@ class PinterestStatsInjector {
       if (event.data.type === 'PINTEREST_PIN_DATA' && event.data.data) {
         const pinData = event.data.data;
         this.interceptedPinData.set(pinData.id, pinData);
-        console.log('Received pin data:', pinData);
+        console.log('[Content Script] Received pin data:', {
+          id: pinData.id,
+          saves: pinData.saves,
+          likes: pinData.likes,
+          comments: pinData.comments,
+          title: pinData.title?.substring(0, 50) + '...',
+        });
 
         // Try to update any existing overlays for this pin
         this.updateExistingOverlay(pinData.id, pinData);
@@ -188,15 +194,34 @@ class PinterestStatsInjector {
 
       // Extract pin data - check intercepted data first
       const interceptedData = this.interceptedPinData.get(pinId);
+
+      if (interceptedData) {
+        console.log(`[Content Script] Using intercepted data for pin ${pinId}:`, {
+          saves: interceptedData.saves,
+          likes: interceptedData.likes,
+          comments: interceptedData.comments,
+        });
+      } else {
+        console.log(`[Content Script] No intercepted data for pin ${pinId}, will extract from DOM`);
+      }
+
       const pinStats = PinterestExtractor.extractPinFromElement(element, interceptedData);
 
       if (pinStats) {
+        console.log(`[Content Script] Final stats for pin ${pinId}:`, {
+          saves: pinStats.saves,
+          likes: pinStats.likes,
+          comments: pinStats.comments,
+        });
+
         // Add stats overlay
         this.addStatsOverlay(element, pinStats);
 
         // Mark as processed
         this.processedPins.add(pinId);
         newPins.push(pinStats);
+      } else {
+        console.log(`[Content Script] Failed to extract stats for pin ${pinId}`);
       }
     }
 
