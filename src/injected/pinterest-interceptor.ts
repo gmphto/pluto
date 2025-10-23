@@ -8,13 +8,19 @@ interface PinterestPinData {
   title?: string;
   description?: string;
   repin_count?: number;
+  save_count?: number;
+  saves?: number;
   reaction_counts?: {
     '1'?: number; // likes
   };
+  like_count?: number;
+  likes?: number;
   comment_count?: number;
+  comments?: number;
   aggregated_pin_data?: {
     aggregated_stats?: {
       saves?: number;
+      likes?: number;
       done?: number;
     };
   };
@@ -101,17 +107,21 @@ class PinterestDataInterceptor {
 
   private processPinterestAPIResponse(data: any, url: string) {
     try {
+      console.log('[Pinterest Interceptor] Processing API response from:', url);
+
       // Pinterest's API response structure
       if (data?.resource_response?.data) {
         const responseData = data.resource_response.data;
 
         // Single pin response
         if (responseData.id) {
+          console.log('[Pinterest Interceptor] Found single pin:', responseData.id);
           this.cachePinData(responseData);
         }
 
         // Array of pins (e.g., from feed, board, search)
         if (Array.isArray(responseData)) {
+          console.log(`[Pinterest Interceptor] Found array of ${responseData.length} pins`);
           responseData.forEach((pin: any) => {
             if (pin?.id) {
               this.cachePinData(pin);
@@ -121,7 +131,44 @@ class PinterestDataInterceptor {
 
         // Results array
         if (responseData.results && Array.isArray(responseData.results)) {
+          console.log(`[Pinterest Interceptor] Found results array with ${responseData.results.length} pins`);
           responseData.results.forEach((pin: any) => {
+            if (pin?.id) {
+              this.cachePinData(pin);
+            }
+          });
+        }
+
+        // Bookmarks array (used in some feed responses)
+        if (responseData.bookmarks && Array.isArray(responseData.bookmarks)) {
+          console.log(`[Pinterest Interceptor] Found bookmarks array with ${responseData.bookmarks.length} items`);
+          responseData.bookmarks.forEach((bookmark: any) => {
+            if (bookmark?.id) {
+              this.cachePinData(bookmark);
+            }
+          });
+        }
+
+        // Data array (sometimes used)
+        if (responseData.data && Array.isArray(responseData.data)) {
+          console.log(`[Pinterest Interceptor] Found data array with ${responseData.data.length} items`);
+          responseData.data.forEach((item: any) => {
+            if (item?.id) {
+              this.cachePinData(item);
+            }
+          });
+        }
+      }
+
+      // Sometimes the data is directly in the response without resource_response
+      if (data?.data && !data?.resource_response) {
+        console.log('[Pinterest Interceptor] Found data without resource_response wrapper');
+        const directData = data.data;
+
+        if (directData.id) {
+          this.cachePinData(directData);
+        } else if (Array.isArray(directData)) {
+          directData.forEach((pin: any) => {
             if (pin?.id) {
               this.cachePinData(pin);
             }
@@ -136,16 +183,53 @@ class PinterestDataInterceptor {
   private cachePinData(pinData: PinterestPinData) {
     if (!pinData.id) return;
 
+    // Log the complete pin data structure for debugging (first time only)
+    if (!this.pinDataCache.has(pinData.id)) {
+      console.log(`[Pinterest Interceptor] Complete raw data for pin ${pinData.id}:`, pinData);
+    }
+
+    // Log the specific stats fields
+    console.log(`[Pinterest Interceptor] Stats fields for ${pinData.id}:`, {
+      repin_count: pinData.repin_count,
+      reaction_counts: pinData.reaction_counts,
+      comment_count: pinData.comment_count,
+      aggregated_pin_data: pinData.aggregated_pin_data,
+    });
+
+    // Try multiple locations for saves
+    const saves = pinData.aggregated_pin_data?.aggregated_stats?.saves ||
+                  pinData.repin_count ||
+                  (pinData as any).save_count ||
+                  (pinData as any).saves ||
+                  0;
+
+    // Try multiple locations for likes
+    const likes = pinData.reaction_counts?.['1'] ||
+                  (pinData as any).aggregated_pin_data?.aggregated_stats?.likes ||
+                  (pinData as any).like_count ||
+                  (pinData as any).likes ||
+                  0;
+
+    // Try multiple locations for comments
+    const comments = pinData.comment_count ||
+                     (pinData as any).comments ||
+                     0;
+
     const extracted = {
       id: pinData.id,
       title: pinData.title || pinData.description || '',
-      saves: pinData.aggregated_pin_data?.aggregated_stats?.saves ||
-             pinData.repin_count || 0,
-      likes: pinData.reaction_counts?.['1'] || 0,
-      comments: pinData.comment_count || 0,
+      saves,
+      likes,
+      comments,
       createdAt: pinData.created_at || new Date().toISOString(),
       imageUrl: pinData.images?.orig?.url || '',
     };
+
+    console.log(`[Pinterest Interceptor] Extracted stats for ${pinData.id}:`, {
+      saves: extracted.saves,
+      likes: extracted.likes,
+      comments: extracted.comments,
+    });
 
     this.pinDataCache.set(pinData.id, extracted);
 
