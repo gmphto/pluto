@@ -11,6 +11,7 @@ class PinterestStatsInjector {
   private observer: MutationObserver | null = null;
   private floatingButtonRoot: ReactDOM.Root | null = null;
   private pinCount: number = 0;
+  private interceptedPinData: Map<string, any> = new Map();
 
   constructor() {
     this.init();
@@ -19,11 +20,77 @@ class PinterestStatsInjector {
   private async init() {
     console.log('Pinterest Stats Analyzer initialized');
 
+    // Inject the Pinterest interceptor script
+    this.injectInterceptor();
+
+    // Listen for messages from the injected script
+    this.setupMessageListener();
+
     // Wait for page to be ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => this.start());
     } else {
       this.start();
+    }
+  }
+
+  private injectInterceptor() {
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('pinterest-interceptor.js');
+    script.onload = () => {
+      console.log('Pinterest interceptor injected successfully');
+      script.remove();
+    };
+    (document.head || document.documentElement).appendChild(script);
+  }
+
+  private setupMessageListener() {
+    window.addEventListener('message', (event) => {
+      if (event.source !== window) return;
+
+      if (event.data.type === 'PINTEREST_PIN_DATA' && event.data.data) {
+        const pinData = event.data.data;
+        this.interceptedPinData.set(pinData.id, pinData);
+        console.log('Received pin data:', pinData);
+
+        // Try to update any existing overlays for this pin
+        this.updateExistingOverlay(pinData.id, pinData);
+      }
+    });
+  }
+
+  private updateExistingOverlay(pinId: string, pinData: any) {
+    // Find the pin element with this ID
+    const pinLink = document.querySelector(`a[href*="/pin/${pinId}"]`);
+    if (pinLink) {
+      const pinElement = pinLink.closest('[data-test-id="pin"], [data-test-id="pinWrapper"], [data-grid-item="true"]') as HTMLElement;
+      if (pinElement) {
+        // Check if we've already processed this pin
+        if (this.processedPins.has(pinId)) {
+          // Remove old overlay
+          const oldOverlay = pinElement.querySelector('.pinterest-stats-overlay');
+          if (oldOverlay) {
+            oldOverlay.remove();
+          }
+        }
+
+        // Create updated stats
+        const stats: PinStats = {
+          id: pinId,
+          url: (pinLink as HTMLAnchorElement).href,
+          imageUrl: pinData.imageUrl || '',
+          title: pinData.title || 'Untitled Pin',
+          saves: pinData.saves || 0,
+          likes: pinData.likes || 0,
+          comments: pinData.comments || 0,
+          createdAt: pinData.createdAt || new Date().toISOString(),
+          timestamp: Date.now(),
+        };
+
+        // Add the updated overlay
+        this.addStatsOverlay(pinElement, stats);
+        this.processedPins.add(pinId);
+      }
     }
   }
 
@@ -119,8 +186,9 @@ class PinterestStatsInjector {
       const pinId = this.extractPinId(pinLink.href);
       if (!pinId || this.processedPins.has(pinId)) continue;
 
-      // Extract pin data
-      const pinStats = PinterestExtractor.extractPinFromElement(element);
+      // Extract pin data - check intercepted data first
+      const interceptedData = this.interceptedPinData.get(pinId);
+      const pinStats = PinterestExtractor.extractPinFromElement(element, interceptedData);
 
       if (pinStats) {
         // Add stats overlay
