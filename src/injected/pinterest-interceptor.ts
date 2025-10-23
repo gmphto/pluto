@@ -63,9 +63,10 @@ class PinterestDataInterceptor {
         }
 
         // Check if this is a Pinterest API call
-        if (url.includes('pinterest.com') &&
-            (url.includes('/resource/') || url.includes('/_ngjs/resource/'))) {
-
+        if (
+          url.includes('pinterest.com') &&
+          (url.includes('/resource/') || url.includes('/_ngjs/resource/'))
+        ) {
           const data = await clonedResponse.json();
           this.processPinterestAPIResponse(data, url);
         }
@@ -82,16 +83,19 @@ class PinterestDataInterceptor {
     const originalOpen = XMLHttpRequest.prototype.open;
     const originalSend = XMLHttpRequest.prototype.send;
 
-    XMLHttpRequest.prototype.open = function(method: string, url: string | URL, ...rest: any[]) {
+    XMLHttpRequest.prototype.open = function (method: string, url: string | URL, ...rest: any[]) {
       (this as any)._url = url.toString();
       return originalOpen.apply(this, [method, url, ...rest] as any);
     };
 
-    XMLHttpRequest.prototype.send = function(body?: Document | XMLHttpRequestBodyInit | null) {
-      this.addEventListener('load', function() {
+    XMLHttpRequest.prototype.send = function (body?: Document | XMLHttpRequestBodyInit | null) {
+      this.addEventListener('load', function () {
         const url = (this as any)._url;
-        if (url && url.includes('pinterest.com') &&
-            (url.includes('/resource/') || url.includes('/_ngjs/resource/'))) {
+        if (
+          url &&
+          url.includes('pinterest.com') &&
+          (url.includes('/resource/') || url.includes('/_ngjs/resource/'))
+        ) {
           try {
             const data = JSON.parse(this.responseText);
             self.processPinterestAPIResponse(data, url);
@@ -131,7 +135,9 @@ class PinterestDataInterceptor {
 
         // Results array
         if (responseData.results && Array.isArray(responseData.results)) {
-          console.log(`[Pinterest Interceptor] Found results array with ${responseData.results.length} pins`);
+          console.log(
+            `[Pinterest Interceptor] Found results array with ${responseData.results.length} pins`
+          );
           responseData.results.forEach((pin: any) => {
             if (pin?.id) {
               this.cachePinData(pin);
@@ -141,7 +147,9 @@ class PinterestDataInterceptor {
 
         // Bookmarks array (used in some feed responses)
         if (responseData.bookmarks && Array.isArray(responseData.bookmarks)) {
-          console.log(`[Pinterest Interceptor] Found bookmarks array with ${responseData.bookmarks.length} items`);
+          console.log(
+            `[Pinterest Interceptor] Found bookmarks array with ${responseData.bookmarks.length} items`
+          );
           responseData.bookmarks.forEach((bookmark: any) => {
             if (bookmark?.id) {
               this.cachePinData(bookmark);
@@ -151,7 +159,9 @@ class PinterestDataInterceptor {
 
         // Data array (sometimes used)
         if (responseData.data && Array.isArray(responseData.data)) {
-          console.log(`[Pinterest Interceptor] Found data array with ${responseData.data.length} items`);
+          console.log(
+            `[Pinterest Interceptor] Found data array with ${responseData.data.length} items`
+          );
           responseData.data.forEach((item: any) => {
             if (item?.id) {
               this.cachePinData(item);
@@ -197,23 +207,23 @@ class PinterestDataInterceptor {
     });
 
     // Try multiple locations for saves
-    const saves = pinData.aggregated_pin_data?.aggregated_stats?.saves ||
-                  pinData.repin_count ||
-                  (pinData as any).save_count ||
-                  (pinData as any).saves ||
-                  0;
+    const saves =
+      pinData.aggregated_pin_data?.aggregated_stats?.saves ||
+      pinData.repin_count ||
+      (pinData as any).save_count ||
+      (pinData as any).saves ||
+      0;
 
     // Try multiple locations for likes
-    const likes = pinData.reaction_counts?.['1'] ||
-                  (pinData as any).aggregated_pin_data?.aggregated_stats?.likes ||
-                  (pinData as any).like_count ||
-                  (pinData as any).likes ||
-                  0;
+    const likes =
+      pinData.reaction_counts?.['1'] ||
+      (pinData as any).aggregated_pin_data?.aggregated_stats?.likes ||
+      (pinData as any).like_count ||
+      (pinData as any).likes ||
+      0;
 
     // Try multiple locations for comments
-    const comments = pinData.comment_count ||
-                     (pinData as any).comments ||
-                     0;
+    const comments = pinData.comment_count || (pinData as any).comments || 0;
 
     const extracted = {
       id: pinData.id,
@@ -234,10 +244,13 @@ class PinterestDataInterceptor {
     this.pinDataCache.set(pinData.id, extracted);
 
     // Notify content script
-    window.postMessage({
-      type: 'PINTEREST_PIN_DATA',
-      data: extracted,
-    }, '*');
+    window.postMessage(
+      {
+        type: 'PINTEREST_PIN_DATA',
+        data: extracted,
+      },
+      '*'
+    );
   }
 
   private setupMessageListener() {
@@ -247,20 +260,26 @@ class PinterestDataInterceptor {
       if (event.data.type === 'GET_PIN_DATA' && event.data.pinId) {
         const data = this.pinDataCache.get(event.data.pinId);
         if (data) {
-          window.postMessage({
-            type: 'PINTEREST_PIN_DATA_RESPONSE',
-            pinId: event.data.pinId,
-            data,
-          }, '*');
+          window.postMessage(
+            {
+              type: 'PINTEREST_PIN_DATA_RESPONSE',
+              pinId: event.data.pinId,
+              data,
+            },
+            '*'
+          );
         }
       }
 
       if (event.data.type === 'GET_ALL_PIN_DATA') {
         const allData = Array.from(this.pinDataCache.entries()).map(([id, data]) => data);
-        window.postMessage({
-          type: 'PINTEREST_ALL_PIN_DATA',
-          data: allData,
-        }, '*');
+        window.postMessage(
+          {
+            type: 'PINTEREST_ALL_PIN_DATA',
+            data: allData,
+          },
+          '*'
+        );
       }
     });
   }

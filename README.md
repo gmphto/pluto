@@ -1,247 +1,237 @@
-# Pinterest Stats Analyzer - Chrome Extension
-
-> Reveal Pinterest stats for each pin! Sort pins by likes, comments or creation date with this marketing analyzer tool.
-
-## 🚀 Features
-
-### Real-Time Pin Analytics
-- **Stats Display**: View vital stats like saves, likes, comments, and creation date directly on each pin
-- **Pin Stats Viewer**: Analyze and gain actionable Pinterest insights to guide content strategy
-- **Local Data Storage**: Automatically saves data of displayed pins to your browser's local storage
-- **Advanced Pin Analytics**: Dedicated stats table page with detailed data analysis
-
-### Powerful Sorting & Filtering
-- **Sort by Multiple Metrics**: Sort pins by saves, likes, comments, or creation date
-- **Advanced Filtering**: Filter pins by minimum/maximum values for any metric
-- **Search Functionality**: Quickly find pins by title or URL
-- **Real-Time Updates**: Stats are collected automatically as you browse
-
-### Supported Pages
-The extension works on the following Pinterest pages:
-- Home Feed
-- Search Page
-- Ideas Page
-- Detailed Pin Page
-
-**Note**: For the best experience, please ensure you are logged into Pinterest.
-
-## 📋 Prerequisites
-
-- Node.js (v16 or higher)
-- npm or yarn
-- Google Chrome browser
-
-## 🛠️ Installation & Development
-
-### 1. Clone the Repository
-
-```bash
-git clone <your-repo-url>
-cd pluto
-```
-
-### 2. Install Dependencies
-
-```bash
-npm install
-```
-
-### 3. Prepare Icons
-
-The extension includes placeholder SVG icons. For Chrome extensions, you need PNG icons:
-
-**Option A**: Convert SVGs to PNGs
-```bash
-# Install a converter tool
-npm install -g svgexport
-
-# Convert icons (run from project root)
-svgexport public/icons/icon16.svg public/icons/icon16.png 16:16
-svgexport public/icons/icon48.svg public/icons/icon48.png 48:48
-svgexport public/icons/icon128.svg public/icons/icon128.png 128:128
-```
-
-**Option B**: Use your own PNG icons
-- Replace the placeholder icons in `public/icons/` with your own 16x16, 48x48, and 128x128 PNG files
-
-### 4. Build the Extension
-
-```bash
-# Development build (with watch mode)
-npm run dev
-
-# Production build
-npm run build
-```
-
-This will create a `dist/` folder with the compiled extension.
-
-### 5. Load Extension in Chrome
-
-1. Open Chrome and navigate to `chrome://extensions/`
-2. Enable "Developer mode" (toggle in top right)
-3. Click "Load unpacked"
-4. Select the `dist/` folder from this project
-5. The extension should now be active!
-
-## 📊 How to Use
-
-### On Pinterest Pages
-
-1. **Browse Pinterest**: Visit Pinterest and navigate to any supported page (Home, Search, Ideas, or Pin detail)
-2. **View Stats**: The extension automatically displays stats overlays on each pin showing:
-   - 📌 Saves
-   - ❤️ Likes
-   - 💬 Comments
-   - 📅 Creation Date
-
-3. **Access Stats Table**: Click the floating "Open Pin Stats Table" button (bottom right) to view all collected data
-
-### Stats Table Page
-
-The dedicated stats page offers advanced features:
-
-- **Search**: Find pins by title or URL
-- **Sort**: Click any column header to sort by that metric
-- **Filter**: Use the filter panel to narrow down pins by:
-  - Minimum/Maximum Saves
-  - Minimum/Maximum Likes
-  - Minimum/Maximum Comments
-- **Export**: All data is automatically saved to your browser's local storage
-- **Clear Data**: Remove all collected data with one click
-
-## 🏗️ Project Structure
-
-```
-pluto/
-├── public/
-│   ├── icons/              # Extension icons
-│   ├── manifest.json       # Chrome extension manifest
-│   └── stats.html          # Stats table page HTML
-├── src/
-│   ├── background/         # Background service worker
-│   ├── components/         # React components
-│   │   ├── FloatingButton.tsx
-│   │   └── PinStatsOverlay.tsx
-│   ├── content/            # Content script (injected into Pinterest)
-│   │   └── index.tsx
-│   ├── stats/              # Stats table page
-│   │   ├── StatsTable.tsx
-│   │   └── index.tsx
-│   ├── types/              # TypeScript type definitions
-│   │   └── pinterest.ts
-│   └── utils/              # Utility functions
-│       ├── pinterest.ts    # Pinterest data extraction
-│       └── storage.ts      # Chrome storage management
-├── scripts/
-│   └── generate-icons.js   # Icon generation script
-├── package.json
-├── tsconfig.json
-├── webpack.config.js
-└── README.md
-```
-
-## 🔧 Development Scripts
-
-```bash
-# Development mode with hot reload
-npm run dev
-
-# Production build
-npm run build
-
-# Type checking
-npm run type-check
-```
-
-## 🎯 Technical Details
-
-### Technologies Used
-
-- **TypeScript**: Type-safe code
-- **React**: UI components
-- **Webpack**: Module bundling
-- **Chrome Extension API**: Storage, messaging, content scripts
-
-### Data Extraction
-
-The extension uses multiple methods to extract Pinterest data:
-
-1. **DOM Parsing**: Extracts visible stats from page elements
-2. **React Fiber**: Accesses React component props for accurate data
-3. **Data Attributes**: Reads Pinterest's data-test-id attributes
-4. **Text Analysis**: Parses stats from visible text with support for K/M/B notation
-
-### Storage
-
-All pin data is stored locally using Chrome's `storage.local` API:
-- Automatic deduplication by pin ID
-- Timestamps for tracking when data was collected
-- No external servers - all data stays on your device
-
-## 🔒 Privacy & Permissions
-
-### Required Permissions
-
-- **storage**: To save pin data locally in your browser
-- **activeTab**: To access the current tab when you click the extension icon
-
-### Host Permissions
-
-- **pinterest.com**: To inject content scripts and access Pinterest pages
-- **pinimg.com**: To access Pinterest images
-
-### Data Privacy
-
-- All data is stored **locally** on your device
-- No data is sent to external servers
-- No tracking or analytics
-- No user identification
-
-## 🐛 Troubleshooting
-
-### Stats Not Showing?
-
-1. Make sure you're logged into Pinterest
-2. Refresh the Pinterest page after installing the extension
-3. Check that the extension is enabled in `chrome://extensions/`
-
-### Build Errors?
-
-1. Delete `node_modules/` and `dist/` folders
-2. Run `npm install` again
-3. Try `npm run build` again
-
-### Icons Not Displaying?
-
-1. Make sure PNG icons exist in `public/icons/`
-2. Icons must be exactly 16x16, 48x48, and 128x128 pixels
-3. Rebuild the extension after adding icons
-
-## 🚀 Future Enhancements
-
-Potential features for future versions:
-
-- Export data to CSV/JSON
-- Pin engagement rate calculations
-- Trend analysis over time
-- Compare pins side-by-side
-- Browser action popup with quick stats
-- Multiple Pinterest account support
-- Dark mode theme
-
-## 📝 License
-
-MIT License - feel free to use and modify for your needs.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit issues or pull requests.
-
-## ⚠️ Disclaimer
-
-This is an unofficial tool and is not affiliated with Pinterest. Use responsibly and in accordance with Pinterest's Terms of Service. This tool is for personal analytics and research purposes.
+<div align="center">
+  <h1>Pinterest Stats Extension</h1>
+  <p>A high-quality Chrome extension for analyzing Pinterest pin statistics</p>
+
+  <p>
+    <a href="https://github.com/gmphto/pluto/actions"><img src="https://github.com/gmphto/pluto/workflows/CI/badge.svg" alt="CI Status"></a>
+    <a href="https://github.com/gmphto/pluto/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+    <a href="https://github.com/gmphto/pluto/releases"><img src="https://img.shields.io/github/v/release/gmphto/pluto" alt="Release"></a>
+  </p>
+</div>
 
 ---
 
-**Happy Pinning! 📌**
+## Overview
+
+Pinterest Stats Extension is a professional-grade Chrome extension that reveals detailed statistics for Pinterest pins. Built with TypeScript and React, it provides real-time analytics, advanced filtering, and comprehensive data management for Pinterest power users and marketers.
+
+### Key Features
+
+- **Real-time Analytics**: View saves, likes, comments, and creation dates directly on pins
+- **Advanced Filtering**: Filter and sort pins by multiple metrics
+- **Local-First**: All data stored locally in your browser - no external servers
+- **Performance Optimized**: Efficient DOM observation and data extraction
+- **Type-Safe**: Built with strict TypeScript for reliability
+- **Well-Tested**: Comprehensive test coverage with Jest
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18.x or higher
+- npm 9.x or higher
+- Chrome browser
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/gmphto/pluto.git
+cd pluto
+
+# Install dependencies
+npm install
+
+# Build the extension
+npm run build
+```
+
+### Loading in Chrome
+
+1. Open Chrome and navigate to `chrome://extensions/`
+2. Enable "Developer mode" in the top right
+3. Click "Load unpacked"
+4. Select the `dist` directory from the project
+
+For detailed development instructions, see [DEVELOPMENT.md](./DEVELOPMENT.md).
+
+## Features
+
+### Real-Time Pin Analytics
+
+- **Stats Overlay**: Hover over any pin to see detailed statistics
+- **Floating Action Button**: Quick access to your stats dashboard
+- **Automatic Collection**: Stats are saved as you browse Pinterest
+- **Multi-Page Support**: Works on home feed, search results, and pin pages
+
+### Stats Dashboard
+
+- **Sortable Table**: Sort by saves, likes, comments, or date
+- **Advanced Filters**: Set minimum/maximum thresholds for any metric
+- **Search**: Find pins by title or URL
+- **Export Ready**: Data stored in Chrome's local storage
+
+### Privacy & Performance
+
+- **100% Local**: No data sent to external servers
+- **Efficient**: Optimized mutation observers and data extraction
+- **Lightweight**: Minimal impact on Pinterest's performance
+- **Secure**: No unnecessary permissions requested
+
+## Development
+
+### Tech Stack
+
+- **Language**: TypeScript 5.4+
+- **UI Framework**: React 18
+- **Build Tool**: Webpack 5
+- **Testing**: Jest + React Testing Library
+- **Linting**: ESLint + Prettier
+- **CI/CD**: GitHub Actions
+
+### Development Commands
+
+```bash
+# Start development mode with watch
+npm run dev
+
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Type checking
+npm run type-check
+
+# Lint code
+npm run lint
+
+# Format code
+npm run format
+
+# Run all validation checks
+npm run validate
+```
+
+### Project Structure
+
+```
+pluto/
+├── .github/              # GitHub Actions workflows and templates
+├── public/               # Static assets and manifest
+├── src/
+│   ├── background/       # Background service worker
+│   ├── components/       # Reusable React components
+│   ├── config/           # Configuration and constants
+│   ├── content/          # Content scripts
+│   ├── injected/         # Page context scripts
+│   ├── lib/              # Core utilities (logger, errors)
+│   ├── stats/            # Stats page components
+│   ├── types/            # TypeScript type definitions
+│   └── utils/            # Helper functions and utilities
+├── dist/                 # Compiled extension (generated)
+└── tests/                # Test utilities and fixtures
+```
+
+## Architecture
+
+### Data Flow
+
+1. **Content Script** (`src/content/`) observes Pinterest DOM
+2. **Injected Script** (`src/injected/`) intercepts API calls
+3. **Extractor** (`src/utils/pinterest.ts`) parses pin data
+4. **Storage Manager** (`src/utils/storage.ts`) persists data
+5. **Stats Table** (`src/stats/`) displays analytics
+
+### Key Components
+
+- **PinterestExtractor**: Multi-method data extraction from DOM and React internals
+- **StorageManager**: Type-safe Chrome storage interface with validation
+- **Logger**: Centralized logging with different severity levels
+- **Error Handler**: Custom error classes for different failure modes
+
+## Testing
+
+We maintain high code quality with comprehensive testing:
+
+```bash
+# Run all tests
+npm test
+
+# Watch mode for development
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+```
+
+Coverage requirements:
+- Branches: 70%
+- Functions: 70%
+- Lines: 70%
+- Statements: 70%
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
+
+### Quick Contribution Guide
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run validation (`npm run validate`)
+5. Commit your changes (following [Conventional Commits](https://www.conventionalcommits.org/))
+6. Push to your fork
+7. Open a Pull Request
+
+### Code Quality
+
+All contributions must pass:
+- ✅ TypeScript compilation with strict mode
+- ✅ ESLint with no warnings
+- ✅ Prettier formatting
+- ✅ All tests passing
+- ✅ Minimum 70% code coverage
+
+## Troubleshooting
+
+### Stats not showing?
+
+1. Ensure you're logged into Pinterest
+2. Refresh the Pinterest page
+3. Check Chrome DevTools console for errors
+
+### Extension not loading?
+
+1. Verify Node version is 18.x or higher
+2. Run `npm install` again
+3. Try `npm run build` and reload the extension
+
+For more help, see [DEVELOPMENT.md](./DEVELOPMENT.md) or [open an issue](https://github.com/gmphto/pluto/issues).
+
+## Documentation
+
+- [Development Guide](./DEVELOPMENT.md) - Detailed technical documentation
+- [Contributing Guide](./CONTRIBUTING.md) - How to contribute
+- [Quick Start](./QUICKSTART.md) - 5-minute setup guide
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+
+## Acknowledgments
+
+Built with inspiration from high-quality open source projects like [Sentry](https://github.com/getsentry/sentry).
+
+---
+
+<div align="center">
+  <p>Made with ❤️ by the Pinterest Stats Extension team</p>
+  <p>
+    <a href="https://github.com/gmphto/pluto/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/gmphto/pluto/issues">Request Feature</a>
+  </p>
+</div>
