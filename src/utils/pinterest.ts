@@ -93,30 +93,42 @@ export class PinterestExtractor {
 
   private static extractPinDataFromDOM(element: HTMLElement): any {
     // Try to find stats in various places Pinterest might store them
+    console.log('[DOM Extraction] Starting DOM extraction for element');
 
     // Method 1: Look for data attributes
     const statsElement = element.querySelector('[data-test-id="pin-stats"]');
     if (statsElement) {
+      console.log('[DOM Extraction] Found stats element with data-test-id');
       const saves = this.parseNumber(statsElement.querySelector('[data-test-id="save-count"]')?.textContent);
       const likes = this.parseNumber(statsElement.querySelector('[data-test-id="like-count"]')?.textContent);
       const comments = this.parseNumber(statsElement.querySelector('[data-test-id="comment-count"]')?.textContent);
 
       if (saves || likes || comments) {
+        console.log('[DOM Extraction] Method 1 (data attributes) succeeded:', { saves, likes, comments });
         return { saves, likes, comments };
       }
     }
 
     // Method 2: Look for React props in the element tree
+    console.log('[DOM Extraction] Trying Method 2: React props extraction');
     const reactProps = this.findReactProps(element);
     if (reactProps) {
+      console.log('[DOM Extraction] Method 2 (React props) succeeded:', reactProps);
       return reactProps;
     }
 
     // Method 3: Parse from visible text
+    console.log('[DOM Extraction] Trying Method 3: Text parsing');
     const textContent = element.textContent || '';
     const saves = this.extractStatFromText(textContent, ['saves', 'saved']);
     const likes = this.extractStatFromText(textContent, ['likes', 'liked']);
     const comments = this.extractStatFromText(textContent, ['comments', 'commented']);
+
+    if (saves || likes || comments) {
+      console.log('[DOM Extraction] Method 3 (text parsing) found some stats:', { saves, likes, comments });
+    } else {
+      console.log('[DOM Extraction] Method 3 (text parsing) found no stats. Text content length:', textContent.length);
+    }
 
     return { saves, likes, comments };
   }
@@ -153,11 +165,11 @@ export class PinterestExtractor {
   }
 
   private static findReactProps(element: HTMLElement): any {
-    // Try to find React fiber - traverse up to 5 levels
+    // Try to find React fiber - traverse up to 10 levels (increased from 5)
     let currentElement: HTMLElement | null = element;
     let depth = 0;
 
-    while (currentElement && depth < 5) {
+    while (currentElement && depth < 10) {
       const fiberKey = Object.keys(currentElement).find(key =>
         key.startsWith('__reactFiber') ||
         key.startsWith('__reactInternalInstance') ||
@@ -170,25 +182,66 @@ export class PinterestExtractor {
         // Try to extract from memoizedProps
         if (fiber?.memoizedProps) {
           const result = this.extractFromProps(fiber.memoizedProps);
-          if (result) return result;
+          if (result) {
+            console.log('[DOM Extraction] Found data in fiber.memoizedProps at depth', depth);
+            return result;
+          }
         }
 
-        // Try to extract from return (parent fiber)
-        if (fiber?.return?.memoizedProps) {
-          const result = this.extractFromProps(fiber.return.memoizedProps);
-          if (result) return result;
+        // Try to extract from return (parent fiber) - traverse up multiple levels
+        let parentFiber = fiber?.return;
+        let parentDepth = 0;
+        while (parentFiber && parentDepth < 5) {
+          if (parentFiber.memoizedProps) {
+            const result = this.extractFromProps(parentFiber.memoizedProps);
+            if (result) {
+              console.log('[DOM Extraction] Found data in parent fiber at depth', depth, 'parent depth', parentDepth);
+              return result;
+            }
+          }
+          parentFiber = parentFiber.return;
+          parentDepth++;
         }
 
-        // Try to extract from child
-        if (fiber?.child?.memoizedProps) {
-          const result = this.extractFromProps(fiber.child.memoizedProps);
-          if (result) return result;
+        // Try to extract from child - traverse down multiple levels
+        let childFiber = fiber?.child;
+        let childDepth = 0;
+        while (childFiber && childDepth < 5) {
+          if (childFiber.memoizedProps) {
+            const result = this.extractFromProps(childFiber.memoizedProps);
+            if (result) {
+              console.log('[DOM Extraction] Found data in child fiber at depth', depth, 'child depth', childDepth);
+              return result;
+            }
+          }
+          // Also check sibling
+          if (childFiber.sibling?.memoizedProps) {
+            const result = this.extractFromProps(childFiber.sibling.memoizedProps);
+            if (result) {
+              console.log('[DOM Extraction] Found data in sibling fiber at depth', depth, 'child depth', childDepth);
+              return result;
+            }
+          }
+          childFiber = childFiber.child;
+          childDepth++;
         }
 
         // Try stateNode
         if (fiber?.stateNode?.props) {
           const result = this.extractFromProps(fiber.stateNode.props);
-          if (result) return result;
+          if (result) {
+            console.log('[DOM Extraction] Found data in fiber.stateNode.props at depth', depth);
+            return result;
+          }
+        }
+
+        // Try alternate fiber (React keeps two versions)
+        if (fiber?.alternate?.memoizedProps) {
+          const result = this.extractFromProps(fiber.alternate.memoizedProps);
+          if (result) {
+            console.log('[DOM Extraction] Found data in alternate fiber at depth', depth);
+            return result;
+          }
         }
       }
 
@@ -196,21 +249,33 @@ export class PinterestExtractor {
       depth++;
     }
 
+    console.log('[DOM Extraction] No React fiber data found after searching', depth, 'levels');
     return null;
   }
 
   private static extractFromProps(props: any): any {
     if (!props) return null;
 
-    // Look for pin data in various prop names
-    const possiblePinData = props.pin || props.data || props.pinData || props.pinObject || props.item;
+    // Look for pin data in various prop names (expanded list)
+    const possiblePinData = props.pin ||
+                           props.data ||
+                           props.pinData ||
+                           props.pinObject ||
+                           props.item ||
+                           props.node ||
+                           props.gridItem ||
+                           props.pinItem;
 
     if (possiblePinData && typeof possiblePinData === 'object') {
       const pinData = possiblePinData;
 
       // Check if this looks like valid pin data
-      if (pinData.id || pinData.repin_count !== undefined || pinData.comment_count !== undefined) {
-        return {
+      if (pinData.id ||
+          pinData.repin_count !== undefined ||
+          pinData.comment_count !== undefined ||
+          pinData.aggregated_pin_data !== undefined) {
+
+        const extracted = {
           saves: pinData.aggregated_pin_data?.aggregated_stats?.saves ||
                  pinData.repin_count ||
                  pinData.save_count ||
@@ -224,6 +289,36 @@ export class PinterestExtractor {
           comments: pinData.comment_count || pinData.comments || 0,
           createdAt: pinData.created_at || pinData.createdAt || new Date().toISOString(),
         };
+
+        // Only return if we found at least one non-zero stat
+        if (extracted.saves > 0 || extracted.likes > 0 || extracted.comments > 0) {
+          console.log('[DOM Extraction] Successfully extracted stats from props:', extracted);
+          return extracted;
+        }
+      }
+    }
+
+    // Also try direct extraction from props without nesting
+    if (props.id && (props.repin_count !== undefined || props.comment_count !== undefined || props.aggregated_pin_data !== undefined)) {
+      const extracted = {
+        saves: props.aggregated_pin_data?.aggregated_stats?.saves ||
+               props.repin_count ||
+               props.save_count ||
+               props.saves ||
+               0,
+        likes: props.aggregated_pin_data?.aggregated_stats?.likes ||
+               props.reaction_counts?.['1'] ||
+               props.like_count ||
+               props.likes ||
+               0,
+        comments: props.comment_count || props.comments || 0,
+        createdAt: props.created_at || props.createdAt || new Date().toISOString(),
+      };
+
+      // Only return if we found at least one non-zero stat
+      if (extracted.saves > 0 || extracted.likes > 0 || extracted.comments > 0) {
+        console.log('[DOM Extraction] Successfully extracted stats from direct props:', extracted);
+        return extracted;
       }
     }
 
